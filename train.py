@@ -14,30 +14,25 @@ def train(model: LSTM, criterion, optimizer, epochs, data, losses = []):
         i += 1
         optimizer.zero_grad()
         word, category = data.random_sample()
-        hidden = model.init_hidden()
-        state = model.init_state()
-
-
-        for ch in range(word.shape[0]):
-            out, hidden, state = model(word[ch], hidden, state)
 
     
-        loss = criterion(out, category)
+        ht = model.init_hidden()
+        ct = model.init_state()
+        
+        for w in word:
+            out, ht, ct = model(w, ht, ct)
 
+        
+        loss = criterion(out, category)
 
 
         loss.backward()
         
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
         optimizer.step()
+        running_loss += loss.item()
         
-        if (i % eval_len == 0):
-            correct = data.tensor2category(category.item())
-            guess = data.tensor2category(torch.argmax(out))
-
-            check = '✓' if guess == correct else f'✗'
-            print(f"Actual: {correct} | Predicted: {guess} {check}")
         
         if (i % eval_len == 0):
             print(f"Iterations: {i} | loss: {running_loss / eval_len}")
@@ -45,5 +40,4 @@ def train(model: LSTM, criterion, optimizer, epochs, data, losses = []):
             running_loss = 0
             
             
-        running_loss += loss.item()
         
