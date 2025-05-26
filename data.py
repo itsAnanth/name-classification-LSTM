@@ -3,11 +3,11 @@ import unicodedata
 from pathlib import Path
 from torch.utils.data import Dataset, DataLoader, RandomSampler
 import numpy as np
-
+import string
 
 def remove_accents(input_str):
-    nfkd_form = unicodedata.normalize('NFKD', input_str)
-    return ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
+    mapping = string.ascii_letters + ",.;:"
+    return ''.join([c for c in input_str if c in mapping])
 
 def is_ascii(str):
     for char in str:
@@ -94,16 +94,19 @@ class Data:
         random_category = np.random.choice(self.categories, replace=True)
         random_word = np.random.choice(self.data[random_category], replace=True)
         
-        return self.word2tensor(random_word), torch.tensor([self.categories.index(random_category)], dtype=torch.long)
+        return self.word2tensor(random_word), self.category2tensor(random_category)
     
     def _generateLoader(self):
         self.dataset, self.dataLoader = NamesDataset(self.data), DataLoader(self.data, batch_size=1, sampler=RandomSampler(self.data, replacement=True, num_samples=1))
 
+    def category2tensor(self, cat: str):
+        return torch.tensor([self.categories.index(cat)], requires_grad=False, dtype=torch.long)
+    
     def word2tensor(self, word: str):
         encodings = []
         for char in word:
-            encoding = torch.zeros(1, len(self.vocab))
-            encoding[0][self.vocab.index(char)] = 1
+            encoding = torch.zeros(len(self.vocab))
+            encoding[self.vocab.index(char)] = 1
             encodings.append(encoding)
 
         encodings = torch.stack(encodings)
@@ -127,10 +130,5 @@ class Data:
 if __name__ == '__main__':
     d = Data()
     w, c = d.random_sample()
-    print(d.tensor2word(w), c)
-
-    w, c = d.random_sample()
-    print(d.tensor2word(w), c)
-
-    w, c = d.random_sample()
-    print(d.tensor2word(w), c)
+    print(w.shape)
+    # print(d.tensor2word(w), c)
